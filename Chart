@@ -1,0 +1,99 @@
+digraph HDB_Recommender_System {
+  rankdir=LR;
+  fontsize=10;
+  node [shape=box, style=rounded, fontsize=10];
+
+  subgraph cluster_frontend {
+    label="Frontend Layer";
+    style=filled;
+    color=lightgrey;
+
+    Buyer [label="Buyer"];
+    ReactApp [label="React / Next.js Web App\nForms, Dashboard, Map UI\nPreference Input"];
+  }
+
+  subgraph cluster_backend {
+    label="Backend API & AI Services";
+    style=filled;
+    color=lightblue;
+
+    ExpressAPI [label="Express.js / FastAPI\nREST API Gateway\nSession Handling"];
+    Orchestrator [label="Recommendation Orchestrator\nWorkflow Controller"];
+
+    EligibilityEngine [label="Eligibility Engine\nHDB Policy Rules"];
+    GrantEngine [label="Grant Calculator\nEHG, CPF Grant, PHG"];
+
+    PreferenceModule [label="Preference Processor\nNormalize User Preferences"];
+    CandidateEngine [label="Candidate Retrieval\nSQL Filtering"];
+
+    PricingEngine [label="Price Prediction Engine\nRegression / Moving Average"];
+    ProximityEngine [label="Proximity Engine\nWalking Distance\nRouting Logic"];
+
+    RankingEngine [label="Scoring Engine\nWeighted Ranking"];
+    ExplainEngine [label="Explanation Generator\nRecommendation Reasoning"];
+  }
+
+  subgraph cluster_data {
+    label="Data Layer";
+    style=filled;
+    color=lightyellow;
+
+    PostgreSQL [label="PostgreSQL + PostGIS\nFlats, Transactions\nAmenities, Geo Data"];
+
+    Redis [label="Redis Cache\nGeocode Cache\nRouting Cache\nHot Queries"];
+
+    Neo4j [label="Neo4j Knowledge Graph\nFlat -> Amenity -> Town\nBuyer -> Family"];
+
+    DataLake [label="Raw Data Lake\nCSV / Parquet\nHistorical Snapshots"];
+  }
+
+  subgraph cluster_pipeline {
+    label="Data Ingestion Pipeline";
+    style=filled;
+    color=lightgreen;
+
+    ETL [label="Python ETL Pipeline\nAirflow / Prefect\nData Cleaning"];
+    Quality [label="Data Quality Checks\nOutlier Removal\nSchema Validation"];
+  }
+
+  subgraph cluster_external {
+    label="External Data Sources";
+    style=filled;
+    color=white;
+
+    DataGov [label="data.gov.sg APIs\nResale Prices\nProperty Data\nAmenities"];
+    OneMap [label="OneMap APIs\nGeocoding\nRouting Distance"];
+  }
+
+  Buyer -> ReactApp;
+  ReactApp -> ExpressAPI;
+
+  ExpressAPI -> Orchestrator;
+
+  Orchestrator -> EligibilityEngine;
+  Orchestrator -> GrantEngine;
+  Orchestrator -> PreferenceModule;
+  Orchestrator -> CandidateEngine;
+  Orchestrator -> PricingEngine;
+  Orchestrator -> ProximityEngine;
+  Orchestrator -> RankingEngine;
+  Orchestrator -> ExplainEngine;
+
+  CandidateEngine -> PostgreSQL;
+  PricingEngine -> PostgreSQL;
+  ProximityEngine -> Redis;
+  ProximityEngine -> PostgreSQL;
+  RankingEngine -> PostgreSQL;
+
+  CandidateEngine -> Neo4j;
+  ExplainEngine -> Neo4j;
+
+  ETL -> Quality;
+  Quality -> PostgreSQL;
+  Quality -> DataLake;
+
+  DataGov -> ETL;
+  OneMap -> ETL;
+
+  ProximityEngine -> OneMap;
+}
