@@ -1,99 +1,121 @@
-digraph HDB_Recommender_System {
+digraph HDB_Recommender_Clear_Architecture {
   rankdir=LR;
-  fontsize=10;
+  graph [fontsize=10];
   node [shape=box, style=rounded, fontsize=10];
 
-  subgraph cluster_frontend {
-    label="Frontend Layer";
-    style=filled;
+  subgraph cluster_ui {
+    label="Frontend";
     color=lightgrey;
+    style=filled;
 
     Buyer [label="Buyer"];
-    ReactApp [label="React / Next.js Web App\nForms, Dashboard, Map UI\nPreference Input"];
+    ReactUI [label="React / Next.js UI\nFunction: collect profile and preferences\nAccess: REST API calls\nOutput: dashboard, cards, maps, rerank controls"];
   }
 
-  subgraph cluster_backend {
-    label="Backend API & AI Services";
-    style=filled;
+  subgraph cluster_api {
+    label="Application Layer";
     color=lightblue;
+    style=filled;
 
-    ExpressAPI [label="Express.js / FastAPI\nREST API Gateway\nSession Handling"];
-    Orchestrator [label="Recommendation Orchestrator\nWorkflow Controller"];
+    ExpressAPI [label="Express.js or FastAPI Gateway\nType: API orchestration\nAccess: validates input, manages session state\nCalls: rule engines, SQL services, graph services"];
+    
+    Orchestrator [label="Recommendation Orchestrator\nType: workflow controller\nLogic: step 1 eligibility, step 2 grants, step 3 filtering, step 4 scoring, step 5 explanation\nAccess: invokes downstream modules in order"];
+  }
 
-    EligibilityEngine [label="Eligibility Engine\nHDB Policy Rules"];
-    GrantEngine [label="Grant Calculator\nEHG, CPF Grant, PHG"];
+  subgraph cluster_reasoning {
+    label="Reasoning and Recommendation Modules";
+    color=lightyellow;
+    style=filled;
 
-    PreferenceModule [label="Preference Processor\nNormalize User Preferences"];
-    CandidateEngine [label="Candidate Retrieval\nSQL Filtering"];
+    Eligibility [label="Eligibility Engine\nType: rule based reasoning\nRules: citizenship, age, family nucleus, income ceiling, ownership rules, CPF lease rules\nAccess: reads versioned policy tables from PostgreSQL\nMethod: rule evaluation"];
+    
+    Grants [label="Grant Calculator\nType: rule based reasoning\nRules: EHG, CPF Housing Grant, PHG, stacking logic\nAccess: reads grant policy tables from PostgreSQL\nMethod: rule evaluation and formula computation"];
 
-    PricingEngine [label="Price Prediction Engine\nRegression / Moving Average"];
-    ProximityEngine [label="Proximity Engine\nWalking Distance\nRouting Logic"];
+    Preference [label="Preference Normalizer\nType: deterministic transformation\nInput: town, region, amenities, school need, floor, budget\nAccess: lookup tables in PostgreSQL\nMethod: normalize and convert to structured filters and weights"];
 
-    RankingEngine [label="Scoring Engine\nWeighted Ranking"];
-    ExplainEngine [label="Explanation Generator\nRecommendation Reasoning"];
+    Candidate [label="Candidate Retrieval Engine\nType: SQL filtering plus spatial query\nInput: eligible buyer, effective budget, town, flat type, lease\nAccess: PostgreSQL plus PostGIS\nMethod: joins, where filters, spatial prefilter\nOutput: shortlist of candidate flats"];
+
+    Pricing [label="Price Prediction Engine\nType: statistical inference\nInput: recent resale transactions\nAccess: PostgreSQL transaction tables\nMethod: median, psm, moving average, regression fallback\nOutput: estimated price range and confidence"];
+
+    Proximity [label="Proximity Engine\nType: geo service\nAccess order: Redis cache first, PostGIS next, OneMap routing last\nMethod: cached lookup, nearest neighbor search, routing API walking time\nOutput: MRT, hawker, park, school travel times"];
+
+    GraphReasoner [label="Knowledge Graph Service\nType: graph traversal reasoning\nAccess: Neo4j\nMethod: traverse Flat to Town to Amenity to ParentHome relations\nUse: family proximity, explainable relationship search, multi hop reasoning"];
+
+    Ranking [label="Ranking Engine\nType: weighted scoring\nAccess: candidate set, pricing output, proximity output, preferences\nMethod: score aggregation out of 100\nCriteria: budget fit, amenities, transport, town match, flat attributes"];
+
+    Explain [label="Explanation Engine\nType: template plus rule based explanation\nAccess: score breakdown, graph reasoning output, policy version, data source metadata\nMethod: generate why this flat and confidence statement"];
   }
 
   subgraph cluster_data {
-    label="Data Layer";
+    label="Serving Data Layer";
+    color=lightgreen;
     style=filled;
-    color=lightyellow;
 
-    PostgreSQL [label="PostgreSQL + PostGIS\nFlats, Transactions\nAmenities, Geo Data"];
-
-    Redis [label="Redis Cache\nGeocode Cache\nRouting Cache\nHot Queries"];
-
-    Neo4j [label="Neo4j Knowledge Graph\nFlat -> Amenity -> Town\nBuyer -> Family"];
-
-    DataLake [label="Raw Data Lake\nCSV / Parquet\nHistorical Snapshots"];
+    Postgres [label="PostgreSQL\nStores: buyers, policies, grants, flats, transactions, amenities, recommendation runs"];
+    PostGIS [label="PostGIS\nStores: coordinates, spatial indexes, radius checks, nearest amenity features"];
+    Redis [label="Redis\nStores: geocode cache, route cache, hot candidate queries"];
+    Neo4j [label="Neo4j Knowledge Graph\nStores: Buyer, Flat, Town, Amenity, Family, Workplace relationships"];
+    FeatureStore [label="Feature Store Table in PostgreSQL\nStores: nearest MRT time, nearest hawker time, school within 1km, price aggregates, confidence flags"];
   }
 
   subgraph cluster_pipeline {
-    label="Data Ingestion Pipeline";
+    label="Data Pipeline";
+    color=mistyrose;
     style=filled;
-    color=lightgreen;
 
-    ETL [label="Python ETL Pipeline\nAirflow / Prefect\nData Cleaning"];
-    Quality [label="Data Quality Checks\nOutlier Removal\nSchema Validation"];
+    ETL [label="Python ETL Pipeline\nType: scheduled ingestion\nTools: Python, Airflow or Prefect\nMethod: fetch, clean, dedupe, normalize, upsert"];
+    
+    Quality [label="Data Quality Module\nType: validation rules\nChecks: required fields, duplicates, outliers, stale data, low sample size\nOutput: confidence and warning flags"];
+
+    PolicyAdmin [label="Policy Admin Module\nType: manual versioned policy maintenance\nUse: update eligibility thresholds, grant bands, effective dates"];
+
+    RawStore [label="Raw Snapshot Store\nCSV or Parquet\nUse: immutable monthly API snapshots and audit history"];
   }
 
   subgraph cluster_external {
-    label="External Data Sources";
-    style=filled;
+    label="External Sources";
     color=white;
+    style=filled;
 
-    DataGov [label="data.gov.sg APIs\nResale Prices\nProperty Data\nAmenities"];
-    OneMap [label="OneMap APIs\nGeocoding\nRouting Distance"];
+    DataGov [label="data.gov.sg APIs\nHDB resale prices\nproperty info\namenities datasets"];
+    OneMap [label="OneMap APIs\nsearch geocode\nrouting walking time"];
   }
 
-  Buyer -> ReactApp;
-  ReactApp -> ExpressAPI;
-
+  Buyer -> ReactUI;
+  ReactUI -> ExpressAPI;
   ExpressAPI -> Orchestrator;
 
-  Orchestrator -> EligibilityEngine;
-  Orchestrator -> GrantEngine;
-  Orchestrator -> PreferenceModule;
-  Orchestrator -> CandidateEngine;
-  Orchestrator -> PricingEngine;
-  Orchestrator -> ProximityEngine;
-  Orchestrator -> RankingEngine;
-  Orchestrator -> ExplainEngine;
+  Orchestrator -> Eligibility [label="buyer profile"];
+  Orchestrator -> Grants [label="eligible profile"];
+  Orchestrator -> Preference [label="raw preferences"];
+  Orchestrator -> Candidate [label="filters plus budget"];
+  Orchestrator -> Pricing [label="candidate flats"];
+  Orchestrator -> Proximity [label="candidate addresses"];
+  Orchestrator -> GraphReasoner [label="family and relationship queries"];
+  Orchestrator -> Ranking [label="candidate features"];
+  Orchestrator -> Explain [label="top ranked results"];
 
-  CandidateEngine -> PostgreSQL;
-  PricingEngine -> PostgreSQL;
-  ProximityEngine -> Redis;
-  ProximityEngine -> PostgreSQL;
-  RankingEngine -> PostgreSQL;
+  Eligibility -> Postgres [label="read policy tables"];
+  Grants -> Postgres [label="read grant rules"];
+  Preference -> Postgres [label="lookup town and flat metadata"];
+  Candidate -> Postgres [label="SQL joins"];
+  Candidate -> PostGIS [label="spatial prefilter"];
+  Pricing -> Postgres [label="transaction query"];
+  Proximity -> Redis [label="cache lookup first"];
+  Proximity -> PostGIS [label="nearest amenity query"];
+  Proximity -> OneMap [label="routing fallback for walking time"];
+  GraphReasoner -> Neo4j [label="graph traversal"];
+  Ranking -> FeatureStore [label="precomputed features"];
+  Ranking -> Postgres [label="read candidate facts"];
+  Explain -> Postgres [label="policy and data source metadata"];
+  Explain -> Neo4j [label="relationship explanation paths"];
 
-  CandidateEngine -> Neo4j;
-  ExplainEngine -> Neo4j;
-
-  ETL -> Quality;
-  Quality -> PostgreSQL;
-  Quality -> DataLake;
-
-  DataGov -> ETL;
-  OneMap -> ETL;
-
-  ProximityEngine -> OneMap;
+  DataGov -> ETL [label="monthly and quarterly fetch"];
+  OneMap -> ETL [label="geocode and route precomputation"];
+  ETL -> Quality [label="cleaned batches"];
+  Quality -> RawStore [label="archive raw and cleaned snapshots"];
+  Quality -> Postgres [label="upsert canonical tables"];
+  Quality -> PostGIS [label="load coordinates and indexes"];
+  Quality -> FeatureStore [label="compute serving features"];
+  PolicyAdmin -> Postgres [label="update versioned policy tables"];
 }
