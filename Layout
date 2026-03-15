@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Layout</title>
+</head>
+
+<body style="margin:0;background:#eaeaea;font-family:Arial;">
+
+<div style="width:96%;margin:auto;background:white;padding:15px;">
+
+<!-- TOP SECTION -->
+<div style="display:flex;gap:10px;margin-bottom:10px;">
+
+<!-- LEFT COLUMN -->
+<div style="flex:2;display:flex;flex-direction:column;gap:10px;">
+<div style="font-size:36px;">HTML HEADER</div>
+<div style="background:#87b9c9;height:170px;"></div>
+</div>
+
+<!-- GREEN BOX -->
+<div style="flex:2;background:#b9e318;height:210px;"></div>
+
+<!-- PURPLE + RED STACK -->
+<div style="flex:1;display:flex;flex-direction:column;gap:10px;">
+<div style="background:#cfc6e6;height:60px;"></div>
+<div style="background:#ff0000;height:140px;"></div>
+</div>
+
+</div>
+
+<!-- BOTTOM SECTION -->
+<div style="display:flex;gap:10px;">
+
+<div style="flex:2;background:#cfcfcf;height:350px;"></div>
+
+<div style="flex:1.5;background:#f3a3c0;height:350px;"></div>
+
+<div style="flex:1.5;background:#fff200;height:350px;"></div>
+
+</div>
+
+</div>
+
+</body>
+</html>
