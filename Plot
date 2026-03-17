@@ -1,0 +1,100 @@
+function buildChartPlotRows() {
+  const metrics = getSelectedMetrics();
+  if (!metrics.length) throw new Error("Select at least one metric");
+  if (!app.pivotResult.rows.length) throw new Error("Create summary first");
+
+  const rows = app.pivotResult.rows || [];
+  const xLabels = ["Value"];
+  const datasets = [];
+  let dsIndex = 0;
+
+  for (const row of rows) {
+    const rowLabel = makeIndexLabel(row);
+
+    for (const metric of metrics) {
+      const n = Number(row[metric]);
+      datasets.push(
+        styleDataset(
+          {
+            label: rowLabel + " | " + titleCase(metric),
+            data: [Number.isFinite(n) ? roundNumber(n) : 0]
+          },
+          dsIndex++
+        )
+      );
+    }
+  }
+
+  return {
+    title: "Plot Rows",
+    xLabels,
+    datasets,
+    info: "One separate line for each row and metric"
+  };
+}
+
+function buildChartPlotColumns() {
+  const metrics = getSelectedMetrics();
+  if (!metrics.length) throw new Error("Select at least one metric");
+  if (!app.pivotResult.rows.length) throw new Error("Create summary first");
+
+  const rows = app.pivotResult.rows || [];
+  const hasColumns = (app.pivotResult.columnFields || []).length > 0;
+  const xLabels = rows.map(r => makeIndexLabel(r));
+  const datasets = [];
+  let dsIndex = 0;
+
+  if (hasColumns) {
+    for (const combo of app.pivotResult.columnCombos) {
+      const comboKey = combo.join("|||");
+
+      for (const metric of metrics) {
+        const data = rows.map(r => {
+          const n = Number(r[comboKey + "###" + metric]);
+          return Number.isFinite(n) ? roundNumber(n) : 0;
+        });
+
+        datasets.push(
+          styleDataset(
+            {
+              label: combo.join(" | ") + " | " + titleCase(metric),
+              data
+            },
+            dsIndex++
+          )
+        );
+      }
+    }
+
+    return {
+      title: "Plot Columns",
+      xLabels,
+      datasets,
+      info: "One separate line for each column combination and metric"
+    };
+  }
+
+  for (const row of rows) {
+    const rowLabel = makeIndexLabel(row);
+
+    for (const metric of metrics) {
+      const n = Number(row[metric]);
+      datasets.push(
+        styleDataset(
+          {
+            label: rowLabel + " | " + titleCase(metric),
+            data: [Number.isFinite(n) ? roundNumber(n) : 0]
+          },
+          dsIndex++
+        )
+      );
+    }
+  }
+
+  return {
+    title: "Plot Columns",
+    xLabels: ["Value"],
+    datasets,
+    info: "One separate line for each row and metric"
+  };
+}
